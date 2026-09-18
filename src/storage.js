@@ -1,23 +1,17 @@
 // Este archivo reemplaza el "window.storage" que solo existe dentro de Claude.
 // Aquí usamos Firebase Firestore (gratis) para que los datos se guarden de verdad
 // en internet y todos los que abran el sitio vean lo mismo.
-//
-// PASOS PARA CONECTARLO A TU PROPIO FIREBASE (te los explico también por chat):
-// 1. Crea un proyecto gratis en https://console.firebase.google.com
-// 2. Dentro del proyecto, agrega una "Web app" (ícono </>)
-// 3. Copia el objeto "firebaseConfig" que te da y pégalo abajo, reemplazando el de ejemplo
-// 4. En el menú del proyecto, entra a "Firestore Database" y créala en "modo de prueba"
 
 import { initializeApp } from 'firebase/app';
 import { getFirestore, doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: "PEGA_AQUI_TU_API_KEY",
-  authDomain: "PEGA_AQUI_TU_PROYECTO.firebaseapp.com",
-  projectId: "PEGA_AQUI_TU_PROYECTO",
-  storageBucket: "PEGA_AQUI_TU_PROYECTO.appspot.com",
-  messagingSenderId: "PEGA_AQUI",
-  appId: "PEGA_AQUI",
+  apiKey: "AIzaSyDjp4RrUML1BrYv-LeGt5j_lPqyy4wo1K8",
+  authDomain: "logistica-lfm-comites.firebaseapp.com",
+  projectId: "logistica-lfm-comites",
+  storageBucket: "logistica-lfm-comites.firebasestorage.app",
+  messagingSenderId: "813457889255",
+  appId: "1:813457889255:web:c260703f2bdbbbc8f24f42",
 };
 
 const app = initializeApp(firebaseConfig);
