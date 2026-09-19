@@ -50,6 +50,11 @@ const FECHAS_FIJAS = {
 const DESTACADOS_SIN_FECHA = ['Semana cultural', 'Último día'];
 const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 const PRESUPUESTO_DEFAULT = 2000;
+const CLAVES_DEFAULT = {
+  admin: 'Logisticacomite/LFM',
+  comunicacion: 'comitecomunicacion/LFM',
+  finanzas: 'comitefinanzas/LFM',
+};
 
 function proximaFecha(mes, dia) {
   const hoy = new Date();
@@ -388,6 +393,8 @@ export default function App() {
   const [mCorreo, setMCorreo] = useState('');
 
   const [panelUnlocked, setPanelUnlocked] = useState(false);
+  const [panelRole, setPanelRole] = useState(null); // 'admin' | 'comunicacion' | 'finanzas'
+  const [claves, setClaves] = useState(CLAVES_DEFAULT);
   const [pass, setPass] = useState('');
   const [panelTab, setPanelTab] = useState('tabla');
   const [search, setSearch] = useState('');
@@ -415,11 +422,19 @@ export default function App() {
       const res3 = await window.storage.get('menus', true);
       setMenus(res3 ? JSON.parse(res3.value) : []);
     } catch (e) { setMenus([]); }
+    try {
+      const res4 = await window.storage.get('claves', true);
+      setClaves(res4 ? { ...CLAVES_DEFAULT, ...JSON.parse(res4.value) } : CLAVES_DEFAULT);
+    } catch (e) { setClaves(CLAVES_DEFAULT); }
     setLoading(false);
   }
   async function save(next) {
     setSubmissions(next);
     try { await window.storage.set('solicitudes', JSON.stringify(next), true); } catch (e) {}
+  }
+  async function saveClaves(next) {
+    setClaves(next);
+    try { await window.storage.set('claves', JSON.stringify(next), true); } catch (e) {}
   }
   async function saveMenus(next) {
     setMenus(next);
@@ -430,6 +445,14 @@ export default function App() {
     try { await window.storage.set('presupuestos', JSON.stringify(next), true); } catch (e) {}
   }
   function presupuestoDe(c) { return presupuestos[c] ?? PRESUPUESTO_DEFAULT; }
+
+  function entrarPanel() {
+    const rol = Object.keys(claves).find(r => claves[r] === pass);
+    if (!rol) return;
+    setPanelRole(rol);
+    setPanelUnlocked(true);
+    setPanelTab(rol === 'finanzas' ? 'presupuestos' : rol === 'comunicacion' ? 'planning' : 'tabla');
+  }
 
   function resetForm() {
     setComite(COMITES[0]); setActividad(''); setDia(''); setHoraInicio(''); setHoraFin('');
@@ -694,7 +717,7 @@ export default function App() {
             <Lock size={28} style={{ color: COLORS.muted }} className="mb-4" />
             <div className="mono text-xs tracking-widest uppercase mb-4" style={{ color: COLORS.muted }}>Panel de logística</div>
             <TextInput type="password" placeholder="Clave del equipo" value={pass} onChange={e => setPass(e.target.value)} className="max-w-xs" />
-            <button onClick={() => pass === 'logistica2026' && setPanelUnlocked(true)} className="mt-4 px-6 py-2.5 rounded-lg display text-sm" style={{ background: COLORS.amber, color: '#14161B' }}>ENTRAR</button>
+            <button onClick={entrarPanel} className="mt-4 px-6 py-2.5 rounded-lg display text-sm" style={{ background: COLORS.amber, color: '#14161B' }}>ENTRAR</button>
             <button onClick={() => setView('home')} className="mt-3 text-xs" style={{ color: COLORS.muted }}>Volver</button>
           </div>
         )}
@@ -704,14 +727,16 @@ export default function App() {
             <BackHeader onBack={() => setView('home')} title="Panel de logística" />
 
             <div className="flex gap-2 mb-5" style={{ flexWrap: 'wrap' }}>
-              {[['tabla','Solicitudes',LayoutGrid],['menu','Menú',UtensilsCrossed],['planning','Planning',Calendar],['presupuestos','Presupuestos',Coins]].map(([key,label,Icon]) => (
+              {[['tabla','Solicitudes',LayoutGrid],['menu','Menú',UtensilsCrossed],['planning','Planning',Calendar],['presupuestos','Presupuestos',Coins],['ajustes','Ajustes',Lock]]
+                .filter(([key]) => panelRole === 'admin' || (panelRole === 'comunicacion' && key === 'planning') || (panelRole === 'finanzas' && key === 'presupuestos'))
+                .map(([key,label,Icon]) => (
                 <button key={key} onClick={() => setPanelTab(key)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs" style={{ minWidth: '45%', background: panelTab===key ? COLORS.amber : COLORS.surface, color: panelTab===key ? '#14161B' : COLORS.muted, border: `1px solid ${panelTab===key?COLORS.amber:COLORS.border}` }}>
                   <Icon size={13}/>{label}
                 </button>
               ))}
             </div>
 
-            {panelTab === 'tabla' && (
+            {panelTab === 'tabla' && panelRole === 'admin' && (
               <>
                 <div className="flex items-center gap-2 mb-4 rounded-md px-3" style={inputStyle}>
                   <Search size={14} style={{ color: COLORS.muted }} />
@@ -790,7 +815,7 @@ export default function App() {
               </>
             )}
 
-            {panelTab === 'planning' && (
+            {panelTab === 'planning' && (panelRole === 'admin' || panelRole === 'comunicacion') && (
               <div className="overflow-x-auto -mx-5 px-5">
                 <div style={{ minWidth: '700px' }}>
                   <div className="flex gap-2 mono text-[10px] uppercase pb-2" style={{ color: COLORS.muted, borderBottom: `1px solid ${COLORS.border}` }}>
@@ -820,7 +845,7 @@ export default function App() {
               </div>
             )}
 
-            {panelTab === 'menu' && (
+            {panelTab === 'menu' && panelRole === 'admin' && (
               <div className="space-y-3">
                 {menus.filter(m => m.status !== 'eliminada').length === 0 && <div className="text-sm text-center py-10" style={{ color: COLORS.muted }}>Sin platillos registrados.</div>}
                 {menus.filter(m => m.status !== 'eliminada').map(m => {
@@ -855,7 +880,7 @@ export default function App() {
               </div>
             )}
 
-            {panelTab === 'presupuestos' && (
+            {panelTab === 'presupuestos' && (panelRole === 'admin' || panelRole === 'finanzas') && (
               <div className="space-y-2">
                 {COMITES.map(c => {
                   const gasto = gastoComite(c, submissions, menus);
@@ -873,6 +898,24 @@ export default function App() {
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {panelTab === 'ajustes' && panelRole === 'admin' && (
+              <div>
+                <div className="text-xs mb-4" style={{ color: COLORS.muted }}>Cambia aquí las claves de acceso al panel. Se guardan de inmediato para todos.</div>
+                {[['admin','Logística (acceso completo)'],['comunicacion','Comité de comunicación (solo Planning)'],['finanzas','Comité de finanzas (solo Presupuestos)']].map(([key, label]) => (
+                  <Field key={key} label={label}>
+                    <TextInput
+                      value={claves[key] || ''}
+                      onChange={e => setClaves({ ...claves, [key]: e.target.value })}
+                      onBlur={() => saveClaves(claves)}
+                    />
+                  </Field>
+                ))}
+                <div className="text-xs mono px-3 py-2 rounded-md" style={{ background: COLORS.surfaceAlt, color: COLORS.muted }}>
+                  Los cambios se guardan al salir de cada casilla (no hace falta un botón aparte).
+                </div>
               </div>
             )}
           </div>
